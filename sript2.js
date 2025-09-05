@@ -1,4 +1,4 @@
-
+yt
 const ZERO_C = math.complex(0,0);
 function c(re, im=0) { return math.complex(re, im); }
 const cre = math.re, cim = math.im;
@@ -388,7 +388,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return null; // unknown
     }).filter(g => g !== null);
     try {
-      const res = await fetch("http://127.0.0.1:8000/simulate", {
+      const res = await fetch("https://quantum-sim.onrender.com", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -540,3 +540,4 @@ function plotBloch(containerId, bloch, q) {
 
   Plotly.newPlot(containerId, [sphere, ...axes, stateVector, arrowHead, labels], layout, { displayModeBar: false });
 }
+
