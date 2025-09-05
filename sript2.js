@@ -388,7 +388,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return null; // unknown
     }).filter(g => g !== null);
     try {
-      const res = await fetch("https://quantum-sim.onrender.com", {
+      const res = await fetch("https://quantum-sim.onrender.com/simulate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -544,6 +544,7 @@ function plotBloch(containerId, bloch, q) {
 
   Plotly.newPlot(containerId, [sphere, ...axes, stateVector, arrowHead, labels], layout, { displayModeBar: false });
 }
+
 
 
 
