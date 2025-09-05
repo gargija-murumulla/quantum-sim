@@ -402,9 +402,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       resultsDiv.innerHTML = "";
       // Full state vector
+      if(data.full_state_vector && data.full_state_vector.length){
       const stateMatrixContainer = renderStateVector(data.full_state_vector, "Full State Vector");
       resultsDiv.appendChild(stateMatrixContainer);
-
+      }
+      else{
+        console.warn("no full state vector recieved ");
+      }
       blochSpheresDiv.innerHTML = "";
     // Loop through qubits and render their properties + Bloch spheres
       data.qubits.forEach((q, i) => {
@@ -540,5 +544,6 @@ function plotBloch(containerId, bloch, q) {
 
   Plotly.newPlot(containerId, [sphere, ...axes, stateVector, arrowHead, labels], layout, { displayModeBar: false });
 }
+
 
 
