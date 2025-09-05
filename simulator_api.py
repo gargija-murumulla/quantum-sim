@@ -5,8 +5,10 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 
 app = FastAPI()
+
 
 # --------------------
 # Quantum helper funcs
@@ -220,6 +222,13 @@ class SimRequest(BaseModel):
 # --------------------
 # API Endpoints
 # --------------------
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    return """
+    <h1>Quantum Simulator</h1>
+    <p>Go to the frontend page to run your simulator.</p>
+    """
+
 @app.post("/simulate")
 async def simulate(req: SimRequest):
     """
@@ -318,3 +327,4 @@ async def recognize_gate_api(gate: str):
     if matrix is None:
         return {"error": "Unknown gate"}
     return {"matrix": matrix.tolist()}
+
