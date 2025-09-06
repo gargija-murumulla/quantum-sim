@@ -228,6 +228,7 @@ function onAddGate(){
 
   gateSequence.push(gate);
   renderGateList(gateSequence);
+  addGate(gate);
 }
 
 function onUndo(){
@@ -256,6 +257,11 @@ function formatAmplitude([re, im]) {
   if (Math.abs(re) < 1e-10) return `${im}i`;
   return `${re}${im >= 0 ? "+" : ""}${im}i`;
 }
+//gate addition 
+
+function addGate(gate) {
+  renderCircuit(nQ, gateSequence);
+}
 
 // Render the full state vector as a ket expansion
 function renderStateVector(stateVector) {
@@ -282,6 +288,235 @@ function renderStateVector(stateVector) {
   container.appendChild(latexDiv);
 
   return container;
+}
+//circuit printing
+function renderCircuit(numQubits, gates) {
+  const container = document.getElementById("quantumCircuit");
+  container.innerHTML = "";
+  container.innerHTML += "<h2>circuit Diagram </h2>";
+
+  const width = 120 * (gates.length + 1);
+  const height = 60 * numQubits;
+
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("width", width);
+  svg.setAttribute("height", height);
+
+  // --- Draw wires ---
+  for (let q = 0; q < numQubits; q++) {
+    const line = document.createElementNS(svgNS, "line");
+    line.setAttribute("x1", 20);
+    line.setAttribute("y1", 30 + q * 60);
+    line.setAttribute("x2", width - 20);
+    line.setAttribute("y2", 30 + q * 60);
+    line.setAttribute("stroke", "black");
+    line.setAttribute("stroke-width", "2");
+    svg.appendChild(line);
+
+    // Label
+    const text = document.createElementNS(svgNS, "text");
+    text.setAttribute("x", 0);
+    text.setAttribute("y", 35 + q * 60);
+    text.textContent = `q${q}`;
+    svg.appendChild(text);
+  }
+
+  // --- Draw gates ---
+  gates.forEach((g, i) => {
+    const x = 100 + i * 120;
+
+    // 🎯 Handle single-qubit standard + rotation gates
+    if (["X", "Y", "Z", "H", "S", "T", "Sdg", "Tdg", "Rx", "Ry", "Rz", "Phase"].includes(g.type)) {
+      const y = 30 + g.params[0] * 60;
+
+      const rect = document.createElementNS(svgNS, "rect");
+      rect.setAttribute("x", x - 25);
+      rect.setAttribute("y", y - 25);
+      rect.setAttribute("width", 50);
+      rect.setAttribute("height", 50);
+      rect.setAttribute("fill", "#d1e7dd");
+      rect.setAttribute("stroke", "black");
+      svg.appendChild(rect);
+
+      const label = document.createElementNS(svgNS, "text");
+      label.setAttribute("x", x);
+      label.setAttribute("y", y);
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("font-size", "14");
+      label.setAttribute("dominant-baseline", "middle");
+
+      // Show gate + angle if rotation
+      if (["Rx", "Ry", "Rz", "Phase"].includes(g.type)) {
+        const angleDeg = g.angle ? (g.angle * 180 / Math.PI).toFixed(1) : "";
+        label.textContent = `${g.type}${angleDeg ? `(${angleDeg}°)` : ""}`;
+        
+      } else {
+        label.textContent = g.type;
+      }
+
+      svg.appendChild(label);
+    }
+
+    // CNOT
+    if (g.type === "CNOT") {
+      const c = g.params[0];
+      const t = g.params[1];
+      const yc = 30 + c * 60;
+      const yt = 30 + t * 60;
+
+      const dot = document.createElementNS(svgNS, "circle");
+      dot.setAttribute("cx", x);
+      dot.setAttribute("cy", yc);
+      dot.setAttribute("r", 6);
+      dot.setAttribute("fill", "black");
+      svg.appendChild(dot);
+
+      const circle = document.createElementNS(svgNS, "circle");
+      circle.setAttribute("cx", x);
+      circle.setAttribute("cy", yt);
+      circle.setAttribute("r", 12);
+      circle.setAttribute("stroke", "black");
+      circle.setAttribute("fill", "white");
+      svg.appendChild(circle);
+
+      const lineV = document.createElementNS(svgNS, "line");
+      lineV.setAttribute("x1", x);
+      lineV.setAttribute("y1", yc);
+      lineV.setAttribute("x2", x);
+      lineV.setAttribute("y2", yt);
+      lineV.setAttribute("stroke", "black");
+      lineV.setAttribute("stroke-width", "2");
+      svg.appendChild(lineV);
+
+      const lineH = document.createElementNS(svgNS, "line");
+      lineH.setAttribute("x1", x - 10);
+      lineH.setAttribute("y1", yt);
+      lineH.setAttribute("x2", x + 10);
+      lineH.setAttribute("y2", yt);
+      lineH.setAttribute("stroke", "black");
+      lineH.setAttribute("stroke-width", "2");
+      svg.appendChild(lineH);
+
+      const lineV2 = document.createElementNS(svgNS, "line");
+      lineV2.setAttribute("x1", x);
+      lineV2.setAttribute("y1", yt - 10);
+      lineV2.setAttribute("x2", x);
+      lineV2.setAttribute("y2", yt + 10);
+      lineV2.setAttribute("stroke", "black");
+      lineV2.setAttribute("stroke-width", "2");
+      svg.appendChild(lineV2);
+    }
+
+    // SWAP
+    if (g.type === "SWAP") {
+      const a = g.params[0];
+      const b = g.params[1];
+      const ya = 30 + a * 60;
+      const yb = 30 + b * 60;
+
+      const line1 = document.createElementNS(svgNS, "line");
+      line1.setAttribute("x1", x - 10);
+      line1.setAttribute("y1", ya - 10);
+      line1.setAttribute("x2", x + 10);
+      line1.setAttribute("y2", ya + 10);
+      line1.setAttribute("stroke", "black");
+      line1.setAttribute("stroke-width", "2");
+      svg.appendChild(line1);
+
+      const line2 = document.createElementNS(svgNS, "line");
+      line2.setAttribute("x1", x - 10);
+      line2.setAttribute("y1", ya + 10);
+      line2.setAttribute("x2", x + 10);
+      line2.setAttribute("y2", ya - 10);
+      line2.setAttribute("stroke", "black");
+      line2.setAttribute("stroke-width", "2");
+      svg.appendChild(line2);
+
+      const line3 = document.createElementNS(svgNS, "line");
+      line3.setAttribute("x1", x - 10);
+      line3.setAttribute("y1", yb - 10);
+      line3.setAttribute("x2", x + 10);
+      line3.setAttribute("y2", yb + 10);
+      line3.setAttribute("stroke", "black");
+      line3.setAttribute("stroke-width", "2");
+      svg.appendChild(line3);
+
+      const line4 = document.createElementNS(svgNS, "line");
+      line4.setAttribute("x1", x - 10);
+      line4.setAttribute("y1", yb + 10);
+      line4.setAttribute("x2", x + 10);
+      line4.setAttribute("y2", yb - 10);
+      line4.setAttribute("stroke", "black");
+      line4.setAttribute("stroke-width", "2");
+      svg.appendChild(line4);
+
+      const lineV = document.createElementNS(svgNS, "line");
+      lineV.setAttribute("x1", x);
+      lineV.setAttribute("y1", ya);
+      lineV.setAttribute("x2", x);
+      lineV.setAttribute("y2", yb);
+      lineV.setAttribute("stroke", "black");
+      lineV.setAttribute("stroke-width", "2");
+      svg.appendChild(lineV);
+    }
+
+    // Toffoli (CCNOT)
+    if (g.type === "CCNOT") {
+      const c1 = g.params[0];
+      const c2 = g.params[1];
+      const t = g.params[2];
+      const y1 = 30 + c1 * 60;
+      const y2 = 30 + c2 * 60;
+      const yt = 30 + t * 60;
+
+      [y1, y2].forEach(yc => {
+        const dot = document.createElementNS(svgNS, "circle");
+        dot.setAttribute("cx", x);
+        dot.setAttribute("cy", yc);
+        dot.setAttribute("r", 6);
+        dot.setAttribute("fill", "black");
+        svg.appendChild(dot);
+      });
+
+      const lineV = document.createElementNS(svgNS, "line");
+      lineV.setAttribute("x1", x);
+      lineV.setAttribute("y1", Math.min(y1, y2));
+      lineV.setAttribute("x2", x);
+      lineV.setAttribute("y2", yt);
+      lineV.setAttribute("stroke", "black");
+      lineV.setAttribute("stroke-width", "2");
+      svg.appendChild(lineV);
+
+      const circle = document.createElementNS(svgNS, "circle");
+      circle.setAttribute("cx", x);
+      circle.setAttribute("cy", yt);
+      circle.setAttribute("r", 12);
+      circle.setAttribute("stroke", "black");
+      circle.setAttribute("fill", "white");
+      svg.appendChild(circle);
+
+      const lineH = document.createElementNS(svgNS, "line");
+      lineH.setAttribute("x1", x - 10);
+      lineH.setAttribute("y1", yt);
+      lineH.setAttribute("x2", x + 10);
+      lineH.setAttribute("y2", yt);
+      lineH.setAttribute("stroke", "black");
+      lineH.setAttribute("stroke-width", "2");
+      svg.appendChild(lineH);
+
+      const lineV2 = document.createElementNS(svgNS, "line");
+      lineV2.setAttribute("x1", x);
+      lineV2.setAttribute("y1", yt - 10);
+      lineV2.setAttribute("x2", x);
+      lineV2.setAttribute("y2", yt + 10);
+      lineV2.setAttribute("stroke", "black");
+      lineV2.setAttribute("stroke-width", "2");
+      svg.appendChild(lineV2);
+    }
+  });
+
+  container.appendChild(svg);
 }
 
 // Render matrix in LaTeX (if ≤ 2x2) or HTML table (if bigger)
@@ -402,38 +637,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       resultsDiv.innerHTML = "";
       // Full state vector
-      const stateMatrixContainer = renderStateVector(data.full_state_vector, "Full State Vector");
-      resultsDiv.appendChild(stateMatrixContainer);
+      if (data.full_state_vector && data.full_state_vector.length) {
+          const stateMatrixContainer = renderStateVector(data.full_state_vector);
+          resultsDiv.appendChild(stateMatrixContainer);
+      } else {
+          console.warn("No full state vector received from backend");
+      }
 
-      blochSpheresDiv.innerHTML = "";/*
-    // Loop through qubits and render their properties + Bloch spheres
-      data.qubits.forEach((q, i) => {
-        const wrapper = document.createElement("div");
-        wrapper.classList.add("bloch-wrapper");
-        // Render reduced density matrix (as LaTeX or table)
-        if (q.density_matrix && q.density_matrix.length){
-          const matrixContainer = renderMatrix(q.density_matrix, `Qubit ${i} Reduced Density Matrix`);
-          resultsDiv.appendChild(matrixContainer);
-        }
-        else{
-          console.warn("matrix is undefined or empty: ",q.density_matrix);
-        }
-        // Bloch sphere
-        const sphereId = `bloch-${i}`;
-        const sphereDiv = document.createElement("div");
-        sphereDiv.id = sphereId;
-        sphereDiv.classList.add("bloch-canvas");
-        wrapper.appendChild(sphereDiv);
-        // Render qubit properties (bloch vector, probs, purity, entropy)
-        const propsDiv = renderQubitProperties(q);
-        propsDiv.classList.add("bloch-properties");
-        wrapper.appendChild(propsDiv);
-        blochSpheresDiv.appendChild(wrapper);
-        
-        plotBloch(sphereId, {x: q.bloch[0], y: q.bloch[1], z: q.bloch[2]}, i);
-        
-      });
-      */
+      blochSpheresDiv.innerHTML = "";
       data.qubits.forEach((q, i) => {
       const wrapper = document.createElement("div");
       wrapper.classList.add("bloch-wrapper");
@@ -479,18 +690,6 @@ document.addEventListener("DOMContentLoaded", () => {
           // OPTION 1: Use already computed info from data.qubits[i]
           const props = renderQubitProperties(data.qubits[i]);
           propsDiv.innerHTML = props.innerHTML;
-
-          // OPTION 2: If you want to fetch fresh values from backend:
-          /*
-          const res = await fetch("https://quantum-sim.onrender.com", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ numQubit: i })
-          });
-          const qData = await res.json();
-          const props = renderQubitProperties(qData);
-          propsDiv.innerHTML = props.innerHTML;
-          */
         } catch (err) {
           console.error("Failed to fetch properties:", err);
           propsDiv.innerHTML = "<span style='color:red'>Error loading properties</span>";
@@ -604,5 +803,3 @@ function plotBloch(containerId, bloch, q) {
 
   Plotly.newPlot(containerId, [sphere, ...axes, stateVector, arrowHead, labels], layout, { displayModeBar: false });
 }
-
-
