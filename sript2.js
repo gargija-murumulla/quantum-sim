@@ -388,7 +388,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return null; // unknown
     }).filter(g => g !== null);
     try {
-      const res = await fetch("https://quantum-sim.onrender.com/simulate", {
+      const res = await fetch("http://127.0.0.1:8000/simulate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -402,14 +402,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       resultsDiv.innerHTML = "";
       // Full state vector
-      if(data.full_state_vector && data.full_state_vector.length){
       const stateMatrixContainer = renderStateVector(data.full_state_vector, "Full State Vector");
       resultsDiv.appendChild(stateMatrixContainer);
-      }
-      else{
-        console.warn("no full state vector recieved ");
-      }
-      blochSpheresDiv.innerHTML = "";
+
+      blochSpheresDiv.innerHTML = "";/*
     // Loop through qubits and render their properties + Bloch spheres
       data.qubits.forEach((q, i) => {
         const wrapper = document.createElement("div");
@@ -437,6 +433,70 @@ document.addEventListener("DOMContentLoaded", () => {
         plotBloch(sphereId, {x: q.bloch[0], y: q.bloch[1], z: q.bloch[2]}, i);
         
       });
+      */
+      data.qubits.forEach((q, i) => {
+      const wrapper = document.createElement("div");
+      wrapper.classList.add("bloch-wrapper");
+      if (q.density_matrix && q.density_matrix.length){
+          const matrixContainer = renderMatrix(q.density_matrix, `Qubit ${i} Reduced Density Matrix`);
+          resultsDiv.appendChild(matrixContainer);
+        }
+        else{
+          console.warn("matrix is undefined or empty: ",q.density_matrix);
+        }
+
+      // Bloch sphere
+      const sphereId = `bloch-${i}`;
+      const sphereDiv = document.createElement("div");
+      sphereDiv.id = sphereId;
+      sphereDiv.classList.add("bloch-canvas");
+      wrapper.appendChild(sphereDiv);
+
+      // Button for properties
+      const btnProps = document.createElement("button");
+      btnProps.textContent = "Show Properties";
+      btnProps.classList.add("props-btn");
+      wrapper.appendChild(btnProps);
+
+      // Empty div to hold properties later
+      const propsDiv = document.createElement("div");
+      propsDiv.id = `props-${i}`;
+      propsDiv.classList.add("bloch-properties");
+      wrapper.appendChild(propsDiv);
+
+      // Attach to DOM
+      blochSpheresDiv.appendChild(wrapper);
+
+      // Draw Bloch sphere
+      plotBloch(sphereId, {x: q.bloch[0], y: q.bloch[1], z: q.bloch[2]}, i);
+
+      // Button handler → calculate/render only when clicked
+      btnProps.addEventListener("click", async () => {
+        // Clear old
+        propsDiv.innerHTML = "<em>Loading...</em>";
+
+        try {
+          // OPTION 1: Use already computed info from data.qubits[i]
+          const props = renderQubitProperties(data.qubits[i]);
+          propsDiv.innerHTML = props.innerHTML;
+
+          // OPTION 2: If you want to fetch fresh values from backend:
+          /*
+          const res = await fetch("http://127.0.0.1:8000/qubit-properties", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ numQubit: i })
+          });
+          const qData = await res.json();
+          const props = renderQubitProperties(qData);
+          propsDiv.innerHTML = props.innerHTML;
+          */
+        } catch (err) {
+          console.error("Failed to fetch properties:", err);
+          propsDiv.innerHTML = "<span style='color:red'>Error loading properties</span>";
+        }
+      });
+    });
 
 
       // Tell MathJax to re-render LaTeX
@@ -544,7 +604,3 @@ function plotBloch(containerId, bloch, q) {
 
   Plotly.newPlot(containerId, [sphere, ...axes, stateVector, arrowHead, labels], layout, { displayModeBar: false });
 }
-
-
-
-
