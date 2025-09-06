@@ -940,10 +940,10 @@ document.addEventListener("DOMContentLoaded", () => {
       // Attach to DOM
       blochSpheresDiv.appendChild(wrapper);
 
-      // Draw Bloch sphere
-      plotBloch(sphereId, shereId, q.bloch, i);
+      console.log("Qubit object:", q);
+      plotBloch(sphereId, q.bloch, i);
 
-      // Button handler → calculate/render only when clicked
+        // Button handler → calculate/render only when clicked
       btnProps.addEventListener("click", async () => {
         // Clear old
         propsDiv.innerHTML = "<em>Loading...</em>";
@@ -1063,6 +1063,7 @@ function plotBloch(containerId, bloch, q) {
 
   Plotly.newPlot(containerId, [sphere, ...axes, stateVector, arrowHead, labels], layout, { displayModeBar: false });
 }
+
 
 
 
