@@ -941,7 +941,7 @@ document.addEventListener("DOMContentLoaded", () => {
       blochSpheresDiv.appendChild(wrapper);
 
       // Draw Bloch sphere
-      plotBloch(sphereId, {shereId, q.bloch, i);
+      plotBloch(sphereId, shereId, q.bloch, i);
 
       // Button handler → calculate/render only when clicked
       btnProps.addEventListener("click", async () => {
@@ -1063,6 +1063,7 @@ function plotBloch(containerId, bloch, q) {
 
   Plotly.newPlot(containerId, [sphere, ...axes, stateVector, arrowHead, labels], layout, { displayModeBar: false });
 }
+
 
 
 
