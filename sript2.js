@@ -388,7 +388,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return null; // unknown
     }).filter(g => g !== null);
     try {
-      const res = await fetch("http://127.0.0.1:8000/simulate", {
+      const res = await fetch("https://quantum-sim.onrender.com", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -482,7 +482,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
           // OPTION 2: If you want to fetch fresh values from backend:
           /*
-          const res = await fetch("http://127.0.0.1:8000/qubit-properties", {
+          const res = await fetch("https://quantum-sim.onrender.com", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ numQubit: i })
@@ -604,3 +604,4 @@ function plotBloch(containerId, bloch, q) {
 
   Plotly.newPlot(containerId, [sphere, ...axes, stateVector, arrowHead, labels], layout, { displayModeBar: false });
 }
+
