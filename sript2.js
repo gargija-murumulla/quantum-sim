@@ -57,6 +57,8 @@ function onSet(){
   blochSpheresDiv.innerHTML = "";
   container.innerHTML = "";
   container.innerHTML = "<h2>Circuit Diagram</h2>";
+  circuit = [];
+  gatesequence = [];
   nQ = parseInt(numQInput.value);
   if (!(nQ >=1 && nQ <=5)) { alert("Choose n between 1 and 5"); return; }
   populateBasis(nQ);
@@ -1002,6 +1004,18 @@ function plotBloch(containerId, bloch, q) {
     },
     hoverinfo: "skip"
   };
+  const r = Math.sqrt(vx*vx + vy*vy + vz*vz);
+  let nx = 0, ny = 0, nz = 1; // default direction if vector ~0
+  if (r > 1e-8) {
+    nx = vx / r;
+    ny = vy / r;
+    nz = vz / r;
+  }
+
+  // Endpoint of the arrow
+  const ex = nx * r;
+  const ey = ny * r;
+  const ez = nz * r;
 
   // Axes
   const axes = [
@@ -1015,7 +1029,7 @@ function plotBloch(containerId, bloch, q) {
   const stateVector = {
     type: "scatter3d",
     mode: "lines+markers",
-    x: [0, vx], y: [0, vy], z: [0, vz],
+    x: [0, ex], y: [0, ey], z: [0, ez],
     line: { width: 6, color: "#ff6969ec" },
     marker: { size: 1, color: "#f16464f5" },
     hoverinfo: "x+y+z",
@@ -1025,8 +1039,8 @@ function plotBloch(containerId, bloch, q) {
   // Arrowhead
   const arrowHead = {
     type: "cone",
-    x: [vx], y: [vy], z: [vz],
-    u: [vx], v: [vy], w: [vz],
+    x: [ex], y: [ey], z: [ez],
+    u: [nx], v: [ny], w: [nz],
     sizemode: "absolute",
     sizeref: 0.2,
     anchor: "tip",
