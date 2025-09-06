@@ -1077,3 +1077,4 @@ function plotBloch(containerId, bloch, q) {
 
   Plotly.newPlot(containerId, [sphere, ...axes, stateVector, arrowHead, labels], layout, { displayModeBar: false });
 }
+
