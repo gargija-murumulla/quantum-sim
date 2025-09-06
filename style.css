@@ -48,6 +48,18 @@ button:hover { background:#0004ed; }
   gap: 18px;
   float: right;
 }
+#quantumCircuit {
+  overflow-x: auto;     /* enable horizontal scrolling */
+  overflow-y: hidden;   /* no vertical scroll needed */
+  white-space: nowrap;  /* prevent wrapping */
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 10px;
+}
+#quantumCircuit svg {
+  display: inline-block; /* allow wide SVGs to scroll */
+}
 
 .result-block { background:#fbfcfd; padding:10px; border-radius:8px; border:1px solid #eef2f6; }
 pre { white-space:pre-wrap; word-break:break-word; }
