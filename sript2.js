@@ -35,6 +35,7 @@ const btnUndo = document.getElementById('btnUndo');
 const btnClearGates = document.getElementById('btnClearGates');
 const gatesListDiv = document.getElementById('gatesList');
 
+const container = document.getElementById("quantumCircuit");
 const blochSpheresDiv = document.getElementById('blochSpheres');
 // ---------- Setup handlers ----------
 btnSet.addEventListener('click', onSet);
@@ -50,8 +51,12 @@ blochSpheresDiv.innerHTML = "<div class = grid > <b><h2 style= text-align:'centr
 let firstQubit = false;
 let gateSequence = [];  // store sequence of gates
 let nQ = 0;             // number of qubits
-
+let circuit = [];
 function onSet(){
+  resultsDiv.innerHTML = "";
+  blochSpheresDiv.innerHTML = "";
+  container.innerHTML = "";
+  container.innerHTML = "<h2>Circuit Diagram</h2>";
   nQ = parseInt(numQInput.value);
   if (!(nQ >=1 && nQ <=5)) { alert("Choose n between 1 and 5"); return; }
   populateBasis(nQ);
@@ -228,7 +233,7 @@ function onAddGate(){
 
   gateSequence.push(gate);
   renderGateList(gateSequence);
-  addGate(gate);
+  addGate(gate, nQ);
 }
 
 function onUndo(){
@@ -258,11 +263,44 @@ function formatAmplitude([re, im]) {
   return `${re}${im >= 0 ? "+" : ""}${im}i`;
 }
 //gate addition 
-
-function addGate(gate) {
-  renderCircuit(nQ, gateSequence);
+function addGate(gate, numQubits) {
+  const layer = [];
+  for (let q = 0; q < numQubits; q++) {
+    if (gate.type === "X" || gate.type === "Y" || gate.type === "Z" || gate.type === "H" ||
+        gate.type === "S" || gate.type === "Sdg" || gate.type === "T" || gate.type === "Tdg" ||
+        gate.type === "Rx" || gate.type === "Ry" || gate.type === "Rz" || gate.type === "Phase") {
+      // single-qubit
+      if (q === gate.params[0]) {
+        layer.push(gate);
+      } else {
+        layer.push({ type: "I", params: [q] });
+      }
+    } else if (gate.type === "CNOT" || gate.type === "CZ") {
+      const [c, t] = gate.params;
+      if (q === c || q === t) {
+        layer.push(gate);
+      } else {
+        layer.push({ type: "I", params: [q] });
+      }
+    } else if (gate.type === "SWAP") {
+      const [a, b] = gate.params;
+      if (q === a || q === b) {
+        layer.push(gate);
+      } else {
+        layer.push({ type: "I", params: [q] });
+      }
+    } else if (gate.type === "CCNOT") {
+      const [c1, c2, t] = gate.params;
+      if (q === c1 || q === c2 || q === t) {
+        layer.push(gate);
+      } else {
+        layer.push({ type: "I", params: [q] });
+      }
+    }
+  }
+  circuit.push(layer);
+  renderCircuit(numQubits, circuit);
 }
-
 // Render the full state vector as a ket expansion
 function renderStateVector(stateVector) {
   const nQubits = Math.log2(stateVector.length);
@@ -290,13 +328,14 @@ function renderStateVector(stateVector) {
   return container;
 }
 //circuit printing
+/*
 function renderCircuit(numQubits, gates) {
-  const container = document.getElementById("quantumCircuit");
   container.innerHTML = "";
   container.innerHTML += "<h2>circuit Diagram </h2>";
-
-  const width = 120 * (gates.length + 1);
-  const height = 60 * numQubits;
+  const spacingY = 60, offsetY = 30;
+  const spacingX = 80, offsetX = 60;
+  const width =offsetX + circuit.length * spacingX;
+  const height = numQubits* spacingY + 50;
 
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS, "svg");
@@ -305,29 +344,49 @@ function renderCircuit(numQubits, gates) {
 
   // --- Draw wires ---
   for (let q = 0; q < numQubits; q++) {
+    const yCoord = q * spacingY + offsetY
     const line = document.createElementNS(svgNS, "line");
     line.setAttribute("x1", 20);
-    line.setAttribute("y1", 30 + q * 60);
+    line.setAttribute("y1", y);
     line.setAttribute("x2", width - 20);
-    line.setAttribute("y2", 30 + q * 60);
+    line.setAttribute("y2", y);
     line.setAttribute("stroke", "black");
     line.setAttribute("stroke-width", "2");
-    svg.appendChild(line);
+    svg.appendChild(y);
 
     // Label
     const text = document.createElementNS(svgNS, "text");
     text.setAttribute("x", 0);
-    text.setAttribute("y", 35 + q * 60);
+    text.setAttribute("y", y+5);
     text.textContent = `q${q}`;
     svg.appendChild(text);
   }
 
   // --- Draw gates ---
-  gates.forEach((g, i) => {
-    const x = 100 + i * 120;
+  gates.forEach((layer, step) => {
+    const x = 100 + step * 120;
+    layer.forEach((g,q)=>{
+    if(g.type === "I"){
+      const y = q * spacintY + offsetY;
+      const rect = document.createElementNS(svgNS, "rect");
+      rect.setAttribute("x", x - 15);
+      rect.setAttribute("y", y - 15);
+      rect.setAttribute("width", 30);
+      rect.setAttribute("height", 30);
+      rect.setAttribute("stroke", "#aaa");
+      rect.setAttribute("fill", "white");
+      svg.appendChild(rect);
 
+      const txt = document.createElementNS(svgNS, "text");
+      txt.setAttribute("x", x);
+      txt.setAttribute("y", y + 5);
+      txt.setAttribute("text-anchor", "middle");
+      txt.textContent = "I";
+      txt.setAttribute("fill", "#aaa");
+      svg.appendChild(txt);
+    }
     // 🎯 Handle single-qubit standard + rotation gates
-    if (["X", "Y", "Z", "H", "S", "T", "Sdg", "Tdg", "Rx", "Ry", "Rz", "Phase"].includes(g.type)) {
+    else if (["X", "Y", "Z", "H", "S", "T", "Sdg", "Tdg", "Rx", "Ry", "Rz", "Phase"].includes(g.type)) {
       const y = 30 + g.params[0] * 60;
 
       const rect = document.createElementNS(svgNS, "rect");
@@ -351,62 +410,55 @@ function renderCircuit(numQubits, gates) {
         const angleDeg = g.angle ? (g.angle * 180 / Math.PI).toFixed(1) : "";
         label.textContent = `${g.type}${angleDeg ? `(${angleDeg}°)` : ""}`;
         
-      } else {
+      }
+       else {
         label.textContent = g.type;
       }
 
       svg.appendChild(label);
     }
 
-    // CNOT
-    if (g.type === "CNOT") {
-      const c = g.params[0];
-      const t = g.params[1];
-      const yc = 30 + c * 60;
-      const yt = 30 + t * 60;
+    // CNOT and cz
+    if (g.type === "CNOT" || g.type === "CZ") {
+  const [c, t] = g.params;
+  const y1 = c * spacingY + offsetY;
+  const y2 = t * spacingY + offsetY;
 
-      const dot = document.createElementNS(svgNS, "circle");
-      dot.setAttribute("cx", x);
-      dot.setAttribute("cy", yc);
-      dot.setAttribute("r", 6);
-      dot.setAttribute("fill", "black");
-      svg.appendChild(dot);
+  // vertical line from min to max
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("x1", x);
+  line.setAttribute("x2", x);
+  line.setAttribute("y1", Math.min(y1, y2));
+  line.setAttribute("y2", Math.max(y1, y2));
+  line.setAttribute("stroke", "black");
+  svg.appendChild(line);
 
-      const circle = document.createElementNS(svgNS, "circle");
-      circle.setAttribute("cx", x);
-      circle.setAttribute("cy", yt);
-      circle.setAttribute("r", 12);
-      circle.setAttribute("stroke", "black");
-      circle.setAttribute("fill", "white");
-      svg.appendChild(circle);
+  // control dot
+  const ctrl = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  ctrl.setAttribute("cx", x);
+  ctrl.setAttribute("cy", y1);
+  ctrl.setAttribute("r", 6);
+  ctrl.setAttribute("fill", "black");
+  svg.appendChild(ctrl);
 
-      const lineV = document.createElementNS(svgNS, "line");
-      lineV.setAttribute("x1", x);
-      lineV.setAttribute("y1", yc);
-      lineV.setAttribute("x2", x);
-      lineV.setAttribute("y2", yt);
-      lineV.setAttribute("stroke", "black");
-      lineV.setAttribute("stroke-width", "2");
-      svg.appendChild(lineV);
+  // target ⊕
+  const tgt = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  tgt.setAttribute("cx", x);
+  tgt.setAttribute("cy", y2);
+  tgt.setAttribute("r", 10);
+  tgt.setAttribute("stroke", "black");
+  tgt.setAttribute("fill", "white");
+  svg.appendChild(tgt);
 
-      const lineH = document.createElementNS(svgNS, "line");
-      lineH.setAttribute("x1", x - 10);
-      lineH.setAttribute("y1", yt);
-      lineH.setAttribute("x2", x + 10);
-      lineH.setAttribute("y2", yt);
-      lineH.setAttribute("stroke", "black");
-      lineH.setAttribute("stroke-width", "2");
-      svg.appendChild(lineH);
+  const vert = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  vert.setAttribute("x1", x-10);
+  vert.setAttribute("x2", x+10);
+  vert.setAttribute("y1", y2);
+  vert.setAttribute("y2", y2);
+  vert.setAttribute("stroke", "black");
+  svg.appendChild(vert);
+}
 
-      const lineV2 = document.createElementNS(svgNS, "line");
-      lineV2.setAttribute("x1", x);
-      lineV2.setAttribute("y1", yt - 10);
-      lineV2.setAttribute("x2", x);
-      lineV2.setAttribute("y2", yt + 10);
-      lineV2.setAttribute("stroke", "black");
-      lineV2.setAttribute("stroke-width", "2");
-      svg.appendChild(lineV2);
-    }
 
     // SWAP
     if (g.type === "SWAP") {
@@ -463,57 +515,265 @@ function renderCircuit(numQubits, gates) {
 
     // Toffoli (CCNOT)
     if (g.type === "CCNOT") {
-      const c1 = g.params[0];
-      const c2 = g.params[1];
-      const t = g.params[2];
-      const y1 = 30 + c1 * 60;
-      const y2 = 30 + c2 * 60;
-      const yt = 30 + t * 60;
+    const [c1, c2, t] = g.params;
+    const ys = [c1, c2, t].map(q => q * spacingY + offsetY);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
 
-      [y1, y2].forEach(yc => {
-        const dot = document.createElementNS(svgNS, "circle");
-        dot.setAttribute("cx", x);
-        dot.setAttribute("cy", yc);
-        dot.setAttribute("r", 6);
-        dot.setAttribute("fill", "black");
-        svg.appendChild(dot);
-      });
+    // vertical line through all three
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", x);
+    line.setAttribute("x2", x);
+    line.setAttribute("y1", minY);
+    line.setAttribute("y2", maxY);
+    line.setAttribute("stroke", "black");
+    svg.appendChild(line);
 
-      const lineV = document.createElementNS(svgNS, "line");
-      lineV.setAttribute("x1", x);
-      lineV.setAttribute("y1", Math.min(y1, y2));
-      lineV.setAttribute("x2", x);
-      lineV.setAttribute("y2", yt);
-      lineV.setAttribute("stroke", "black");
-      lineV.setAttribute("stroke-width", "2");
-      svg.appendChild(lineV);
-
-      const circle = document.createElementNS(svgNS, "circle");
+    // controls (filled dots)
+    [c1, c2].forEach(ctrlQ => {
+      const cy = ctrlQ * spacingY + offsetY;
+      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
       circle.setAttribute("cx", x);
-      circle.setAttribute("cy", yt);
-      circle.setAttribute("r", 12);
-      circle.setAttribute("stroke", "black");
-      circle.setAttribute("fill", "white");
+      circle.setAttribute("cy", cy);
+      circle.setAttribute("r", 6);
+      circle.setAttribute("fill", "black");
       svg.appendChild(circle);
+    });
 
-      const lineH = document.createElementNS(svgNS, "line");
-      lineH.setAttribute("x1", x - 10);
-      lineH.setAttribute("y1", yt);
-      lineH.setAttribute("x2", x + 10);
-      lineH.setAttribute("y2", yt);
-      lineH.setAttribute("stroke", "black");
-      lineH.setAttribute("stroke-width", "2");
-      svg.appendChild(lineH);
+    // target (⊕)
+    const cyT = t * spacingY + offsetY;
+    const tgt = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    tgt.setAttribute("cx", x);
+    tgt.setAttribute("cy", cyT);
+    tgt.setAttribute("r", 10);
+    tgt.setAttribute("stroke", "black");
+    tgt.setAttribute("fill", "white");
+    svg.appendChild(tgt);
 
-      const lineV2 = document.createElementNS(svgNS, "line");
-      lineV2.setAttribute("x1", x);
-      lineV2.setAttribute("y1", yt - 10);
-      lineV2.setAttribute("x2", x);
-      lineV2.setAttribute("y2", yt + 10);
-      lineV2.setAttribute("stroke", "black");
-      lineV2.setAttribute("stroke-width", "2");
-      svg.appendChild(lineV2);
-    }
+    const horiz = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    horiz.setAttribute("x1", x-10);
+    horiz.setAttribute("x2", x+10);
+    horiz.setAttribute("y1", cyT);
+    horiz.setAttribute("y2", cyT);
+    horiz.setAttribute("stroke", "black");
+    svg.appendChild(horiz);
+}
+
+  });
+  });
+
+  container.appendChild(svg);
+}
+*/
+function renderCircuit(numQubits, circuit) {
+  const container = document.getElementById("quantumCircuit");
+  container.innerHTML = "<h2>Circuit Diagram</h2>";
+
+  const spacingY = 60, offsetY = 30;
+  const spacingX = 80, offsetX = 60;
+  const width = offsetX + circuit.length * spacingX;
+  const height = numQubits * spacingY + 50;
+
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("width", width);
+  svg.setAttribute("height", height);
+
+  // --- Draw wires ---
+  for (let q = 0; q < numQubits; q++) {
+    const y = q * spacingY + offsetY;
+
+    const line = document.createElementNS(svgNS, "line");
+    line.setAttribute("x1", 20);
+    line.setAttribute("y1", y);
+    line.setAttribute("x2", width - 20);
+    line.setAttribute("y2", y);
+    line.setAttribute("stroke", "black");
+    line.setAttribute("stroke-width", "2");
+    svg.appendChild(line);
+
+    const text = document.createElementNS(svgNS, "text");
+    text.setAttribute("x", 0);
+    text.setAttribute("y", y + 5);
+    text.textContent = `q${q}`;
+    svg.appendChild(text);
+  }
+
+  // --- Draw gates ---
+  circuit.forEach((layer, step) => {
+    const x = offsetX + step * spacingX;
+
+    layer.forEach((g, q) => {
+      const y = q * spacingY + offsetY;
+
+      // Identity
+      if (g.type === "I") {
+        const rect = document.createElementNS(svgNS, "rect");
+        rect.setAttribute("x", x - 15);
+        rect.setAttribute("y", y - 15);
+        rect.setAttribute("width", 30);
+        rect.setAttribute("height", 30);
+        rect.setAttribute("stroke", "#aaa");
+        rect.setAttribute("fill", "white");
+        svg.appendChild(rect);
+
+        const txt = document.createElementNS(svgNS, "text");
+        txt.setAttribute("x", x);
+        txt.setAttribute("y", y + 5);
+        txt.setAttribute("text-anchor", "middle");
+        txt.textContent = "I";
+        txt.setAttribute("fill", "#aaa");
+        svg.appendChild(txt);
+      }
+
+      // Single-qubit gates
+      else if (["X","Y","Z","H","S","T","Sdg","Tdg","Rx","Ry","Rz","Phase"].includes(g.type)) {
+        const rect = document.createElementNS(svgNS, "rect");
+        rect.setAttribute("x", x - 25);
+        rect.setAttribute("y", y - 25);
+        rect.setAttribute("width", 50);
+        rect.setAttribute("height", 50);
+        rect.setAttribute("fill", "#d1e7dd");
+        rect.setAttribute("stroke", "black");
+        svg.appendChild(rect);
+
+        const label = document.createElementNS(svgNS, "text");
+        label.setAttribute("x", x);
+        label.setAttribute("y", y);
+        label.setAttribute("text-anchor", "middle");
+        label.setAttribute("font-size", "14");
+        label.setAttribute("dominant-baseline", "middle");
+
+        if (["Rx","Ry","Rz","Phase"].includes(g.type)) {
+          const angleDeg = g.angle ? (g.angle * 180 / Math.PI).toFixed(1) : "";
+          label.textContent = `${g.type}${angleDeg ? `(${angleDeg}°)` : ""}`;
+        } else {
+          label.textContent = g.type;
+        }
+
+        svg.appendChild(label);
+      }
+
+      // CNOT / CZ
+      else if (g.type === "CNOT" || g.type === "CZ") {
+        const [c, t] = g.params;
+        if (q === c || q === t) {
+          const y1 = c * spacingY + offsetY;
+          const y2 = t * spacingY + offsetY;
+
+          const line = document.createElementNS(svgNS, "line");
+          line.setAttribute("x1", x);
+          line.setAttribute("x2", x);
+          line.setAttribute("y1", Math.min(y1, y2));
+          line.setAttribute("y2", Math.max(y1, y2));
+          line.setAttribute("stroke", "black");
+          svg.appendChild(line);
+
+          // control
+          const ctrl = document.createElementNS(svgNS, "circle");
+          ctrl.setAttribute("cx", x);
+          ctrl.setAttribute("cy", y1);
+          ctrl.setAttribute("r", 6);
+          ctrl.setAttribute("fill", "black");
+          svg.appendChild(ctrl);
+
+          // target
+          const tgt = document.createElementNS(svgNS, "circle");
+          tgt.setAttribute("cx", x);
+          tgt.setAttribute("cy", y2);
+          tgt.setAttribute("r", 10);
+          tgt.setAttribute("stroke", "black");
+          tgt.setAttribute("fill", "white");
+          svg.appendChild(tgt);
+
+          const horiz = document.createElementNS(svgNS, "line");
+          horiz.setAttribute("x1", x - 10);
+          horiz.setAttribute("x2", x + 10);
+          horiz.setAttribute("y1", y2);
+          horiz.setAttribute("y2", y2);
+          horiz.setAttribute("stroke", "black");
+          svg.appendChild(horiz);
+        }
+      }
+
+      // SWAP
+      else if (g.type === "SWAP") {
+        const [a, b] = g.params;
+        if (q === a || q === b) {
+          const ya = a * spacingY + offsetY;
+          const yb = b * spacingY + offsetY;
+
+          const lineV = document.createElementNS(svgNS, "line");
+          lineV.setAttribute("x1", x);
+          lineV.setAttribute("y1", ya);
+          lineV.setAttribute("x2", x);
+          lineV.setAttribute("y2", yb);
+          lineV.setAttribute("stroke", "black");
+          svg.appendChild(lineV);
+
+          [ya, yb].forEach(yy => {
+            const l1 = document.createElementNS(svgNS, "line");
+            l1.setAttribute("x1", x - 10);
+            l1.setAttribute("y1", yy - 10);
+            l1.setAttribute("x2", x + 10);
+            l1.setAttribute("y2", yy + 10);
+            l1.setAttribute("stroke", "black");
+            svg.appendChild(l1);
+
+            const l2 = document.createElementNS(svgNS, "line");
+            l2.setAttribute("x1", x - 10);
+            l2.setAttribute("y1", yy + 10);
+            l2.setAttribute("x2", x + 10);
+            l2.setAttribute("y2", yy - 10);
+            l2.setAttribute("stroke", "black");
+            svg.appendChild(l2);
+          });
+        }
+      }
+
+      // Toffoli
+      else if (g.type === "CCNOT") {
+        const [c1, c2, t] = g.params;
+        if (q === c1 || q === c2 || q === t) {
+          const ys = [c1, c2, t].map(qi => qi * spacingY + offsetY);
+
+          const line = document.createElementNS(svgNS, "line");
+          line.setAttribute("x1", x);
+          line.setAttribute("x2", x);
+          line.setAttribute("y1", Math.min(...ys));
+          line.setAttribute("y2", Math.max(...ys));
+          line.setAttribute("stroke", "black");
+          svg.appendChild(line);
+
+          [c1, c2].forEach(ctrlQ => {
+            const cy = ctrlQ * spacingY + offsetY;
+            const circle = document.createElementNS(svgNS, "circle");
+            circle.setAttribute("cx", x);
+            circle.setAttribute("cy", cy);
+            circle.setAttribute("r", 6);
+            circle.setAttribute("fill", "black");
+            svg.appendChild(circle);
+          });
+
+          const cyT = t * spacingY + offsetY;
+          const tgt = document.createElementNS(svgNS, "circle");
+          tgt.setAttribute("cx", x);
+          tgt.setAttribute("cy", cyT);
+          tgt.setAttribute("r", 10);
+          tgt.setAttribute("stroke", "black");
+          tgt.setAttribute("fill", "white");
+          svg.appendChild(tgt);
+
+          const horiz = document.createElementNS(svgNS, "line");
+          horiz.setAttribute("x1", x - 10);
+          horiz.setAttribute("x2", x + 10);
+          horiz.setAttribute("y1", cyT);
+          horiz.setAttribute("y2", cyT);
+          horiz.setAttribute("stroke", "black");
+          svg.appendChild(horiz);
+        }
+      }
+    });
   });
 
   container.appendChild(svg);
