@@ -997,52 +997,38 @@ function plotBloch(containerId, bloch, q) {
     opacity: 0.3,
     colorscale: [[0, "rgba(228, 246, 253, 0.87)"], [1, "rgba(248, 200, 244, 1)"]],
     showscale: false,
-    contours: {
-      x: { show: true, color: "#5a56568a", width: 20 },
-      y: { show: true, color: "#5a565680", width: 20 },
-      z: { show: true, color: "#5a565685", width: 20 }
-    },
     hoverinfo: "skip"
   };
-  const r = Math.sqrt(vx*vx + vy*vy + vz*vz);
-  let nx = 0, ny = 0, nz = 1; // default direction if vector ~0
-  if (r > 1e-8) {
-    nx = vx / r;
-    ny = vy / r;
-    nz = vz / r;
-  }
-
-  // Endpoint of the arrow
-  const ex = nx * r;
-  const ey = ny * r;
-  const ez = nz * r;
 
   // Axes
   const axes = [
-    { type: "scatter3d", mode: "lines", x: [-1, 1], y: [0, 0], z: [0, 0], line: { width: 3, color: "purple" }, name: "xiaxis"}, // X
-    { type: "scatter3d", mode: "lines", x: [0, 0], y: [-1, 1], z: [0, 0], line: { width: 3, color: "purple" }, name:"y-axis"}, // Y
-    { type: "scatter3d", mode: "lines", x: [0, 0], y: [0, 0], z: [-1, 1], line: { width: 3, color: "purple" }, name : "z-axis"}  // Z
+    { type: "scatter3d", mode: "lines", x: [-1, 1], y: [0, 0], z: [0, 0], line: { width: 3, color: "purple" }, name: "x-axis"}, 
+    { type: "scatter3d", mode: "lines", x: [0, 0], y: [-1, 1], z: [0, 0], line: { width: 3, color: "purple" }, name:"y-axis"}, 
+    { type: "scatter3d", mode: "lines", x: [0, 0], y: [0, 0], z: [-1, 1], line: { width: 3, color: "purple" }, name:"z-axis"}  
   ];
 
   // Backend-provided Bloch vector
-  const vx = bloch.x, vy = bloch.y, vz = bloch.z;
+  const [vx, vy, vz] = bloch;
+  const r = Math.sqrt(vx*vx + vy*vy + vz*vz); // length of vector (shrinks for mixed states)
+
+  // State vector arrow
   const stateVector = {
     type: "scatter3d",
     mode: "lines+markers",
-    x: [0, ex], y: [0, ey], z: [0, ez],
+    x: [0, vx], y: [0, vy], z: [0, vz],
     line: { width: 6, color: "#ff6969ec" },
     marker: { size: 1, color: "#f16464f5" },
     hoverinfo: "x+y+z",
     name: "qubit"
   };
 
-  // Arrowhead
+  // Arrowhead (scaled properly)
   const arrowHead = {
     type: "cone",
-    x: [ex], y: [ey], z: [ez],
-    u: [nx], v: [ny], w: [nz],
+    x: [vx], y: [vy], z: [vz],
+    u: [vx], v: [vy], w: [vz],
     sizemode: "absolute",
-    sizeref: 0.2,
+    sizeref: 0.2 * r,   // shrink arrowhead with purity
     anchor: "tip",
     colorscale: [[0, "red"], [1, "red"]],
     showscale: false
@@ -1077,4 +1063,5 @@ function plotBloch(containerId, bloch, q) {
 
   Plotly.newPlot(containerId, [sphere, ...axes, stateVector, arrowHead, labels], layout, { displayModeBar: false });
 }
+
 
