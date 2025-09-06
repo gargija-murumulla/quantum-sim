@@ -39,7 +39,7 @@ button:hover { background:#0004ed; }
   max-height:150px; overflow:auto; border:1px solid #eef2f6;
 }
 /*.grid { margin-top:18px; display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:18px; float:right; width:55%;}*/
-.grid {
+.right-panel {
   flex: 0 0 50%;
   min-width: 300px;
   margin-top: 18px;
